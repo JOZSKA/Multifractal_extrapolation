@@ -25,5 +25,4 @@ def ratio_bound():
     return 0.99
 
 def PDF_argument():
-    return np.exp(np.linspace(-5,5, num=1000))
-    
+    return np.linspace(0.0001,140,num=100000)    

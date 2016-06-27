@@ -51,12 +51,12 @@ def norm(function, argument):
     for step in range(0, n_steps-1):
    
         delta = argument[step+1]-argument[step]
-        norm += delta*(function[step]+function[step+1])/2
+        norm += delta*(function[step]+function[step+1])/2.0
 
     return norm
 
 
-# This is used in the extrapolation of the fluxes (relating uniform PDF for which the generator is present to the real UM PDF).
+# This may be used in the extrapolation of the fluxes (relating uniform PDF for which the generator is present to the real UM PDF).
 
 def integrate_up_to_value(function, argument, value):
 
@@ -87,7 +87,6 @@ def inverse_mellin_UM_integrand(z, x_o, C, alpha, scale):
 
 def inverse_mellin_UM(parameters, scale):
 
-    H = parameters[0]
     C = parameters[2]
     alpha = parameters[1]
 
@@ -99,6 +98,8 @@ def inverse_mellin_UM(parameters, scale):
 
         function_transformed[index] = quad(inverse_mellin_UM_integrand, -np.inf, np.inf, args=(x_o, C, alpha, scale))[0]
         index +=1 
+
+    function_transformed[function_transformed < 0] = 0  #clean numerical fluctuations 
 
    # function_transformed = function_transformed/norm(function_transformed, x)  # Although PDF is normalized by definition, this is to correct numerical errors.
 

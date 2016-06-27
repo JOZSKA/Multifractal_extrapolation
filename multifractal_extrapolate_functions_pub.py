@@ -162,8 +162,7 @@ def fluxes_extrapolate(flux, n_iterations, UM_parameters):
 
         for lon in range(0, region_width):
     
-            value = rn.random()   # Generate random value between 0 and 1 (with uniform distribution).
-            factor = mbf.integrate_up_to_value(PDF, mpv.PDF_argument(), value)  # obtain from the randomly generated value the extrapoaltion factor.
+            factor = np.random.choice(mpv.PDF_argument(), p = PDF/sum(PDF))  # obtain from the randomly generated value the extrapolation factor.
             flux_extrapolated[lat, lon] = factor*flux[lat/2**n_iterations, lon/2**n_iterations]  # Determine the flux at the lower scales.
 
     return flux_extrapolated
