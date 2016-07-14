@@ -47,7 +47,7 @@ def fluxes(field, step_size):
 
 # This function typically calculates scaling of the fluxes (captured by the more general `field' variable!). It calculates the statistical moments scaling for the moments supplied (`momenta') from minimal (`scale_min') to maximal (`scale_max') scale, scales separated by scaling coefficient (`scale_coeff').  The moments are calculated in boxes with the area A = scale**2. The boxes however might be squashed (non-rectangular) by the anisotropy coefficient (`anisotropy'). It is typical to set anisotropy = 1.0, implying that the boxes are squares. The boundaries and the land lead in general to smaller effective box area than A = scale**2. The boxes with smaller effective (not necessarily geometric!) area are included in the analysis with a lower statistical weight (the weight is simply proportional to the box effective area). To resolve the assymetry of the analysis introduced by the regional boundaries, the boxes are defined symmetrically from all 4 corners of the rectangular region.
  
-#This function is more general than just for the purpose of calculating statistical moments, it can calculate also mean variance per box, or mean standard deviation per box. It can also return the scale ratio at which the fluxes were computed. What is calculated is determined by the `output' variable with possible four values: output = (moment, variance, st_deviation, scale).
+#This function is more general than just for the purpose of calculating statistical moments, it can calculate also mean variance per box, or mean standard deviation per box, as well as the scale ratio at which the fluxes were computed. What is calculated is determined by the `output' variable with possible four values: output = (moment, variance, st_deviation).
 
 
 def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, output):
@@ -144,16 +144,14 @@ def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, outpu
         length = scale_min*scale_coeff**step
         step+=1     
         
-    if output == 'scale': 
-        return scale 
-    else: 
-        return np.asarray(mean_het)
+   
+    return [scale, np.asarray(mean_het)]
 
 
 
-# This function computes the field increments scaling. It has the same structure as the previous function (for the details see the function scaling(...)) with the `output' variable having values output = (moment, scale). The increments are computed around the circle with the radius = scale across all the relevant points of the region. It is as always assumed that field = 0 means `masked', or in other words land. The scale is here returned with values in grid pixels, rather than in values of the maximal scale. This is a difference to the previous scaling(...) function.
+# This function computes the field increments scaling. It has the same structure as the previous function (for the details see the function scaling(...)), except the output is always 'moments'. The increments are computed around the circle with the radius = scale across all the relevant points of the region. It is as always assumed that field = 0 means `masked', or in other words land. The scale is here returned with values in grid pixels, rather than in values of the maximal scale. This is a difference to the previous scaling(...) function.
 
-def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff, output): 
+def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff): 
 
     region_height = np.shape(field)[0]
     region_width = np.shape(field)[1]
@@ -199,10 +197,8 @@ def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff, output
         step+=1    
         
                 
-    if output == 'moment': 
-        return np.asarray(delta_field) 
-    else: 
-        return scale[0:len(delta_field)]
+
+    return [scale[0:len(delta_field)], np.asarray(delta_field)]
 
 
 
@@ -231,10 +227,10 @@ def UM_fit(K, momenta, C_min, C_max, C_step):
 
 
 
-# This function calculates the 3 scaling parameters H, C_1, alpha and also the remaining scaling information. The moment scaling function is computed through standard linear interpolation. The alpha, C_1 parameters are computed through the fit provided by UM_fit(...) function. The remaining scaling information is the outer scale of the process `outer_scale' parameter and also the fluctuation characteristic sizes. The output variable has two options: output=(K,parameters). If 'K' is selected then in returns the moment scaling function, otherwise it returns the parameters. The parameter output of the function is: [H, alpha, C_1, outer_scale, fluctuation size, the error of the UM fit]. There are two separate moments: moments for increments (momenta_inc) and for fluxes (momenta_flux). This small complication is due to the fact that due to numerical computational reasons it is sometimes convenient to select the moments for fluxes and increments slightly differently. Note for example module defining the parameters for the analysis.
+# This function calculates the 3 scaling parameters H, C_1, alpha and also the remaining scaling information. The moment scaling function is computed through standard linear interpolation. The alpha, C_1 parameters are computed through the fit provided by UM_fit(...) function. The remaining scaling information is the outer scale of the process `outer_scale' parameter and also the fluctuation characteristic sizes. The function output is = (the moment scaling function K, the UM parameters). The UM parameter output of the function is: [H, alpha, C_1, outer_scale, fluctuation size, the error of the UM fit]. There are two separate moments: moments for increments (momenta_inc) and for fluxes (momenta_flux). This small complication is due to the fact that due to numerical computational reasons it is sometimes convenient to select the moments for fluxes and increments slightly differently. Note for example module defining the parameters for the analysis.
 
 
-def UM_parameters(flux_scaling, inc_scaling, scales_flux, scales_inc, momenta_flux, momenta_inc, output):
+def UM_parameters(flux_scaling, inc_scaling, scales_flux, scales_inc, momenta_flux, momenta_inc):
  
     scales_flux = scales_flux[np.argwhere(flux_scaling[:,10]>1)][:,0]
     flux_scaling = flux_scaling[0:len(scales_flux),:]
@@ -251,10 +247,7 @@ def UM_parameters(flux_scaling, inc_scaling, scales_flux, scales_inc, momenta_fl
     outer_scale = np.exp(a_flux[9]/K[9])
     sc_flux_parameters = UM_fit(K, momenta_flux, 0, 2.0, 0.001)
 
-    if output == 'K': 
-        return K
-    else:
-        return np.array([H, sc_flux_parameters[0], sc_flux_parameters[1], outer_scale, np.exp(a_inc), sc_flux_parameters[2]])
+    return [K, np.array([H, sc_flux_parameters[0], sc_flux_parameters[1], outer_scale, np.exp(a_inc), sc_flux_parameters[2]])]
     
 
 

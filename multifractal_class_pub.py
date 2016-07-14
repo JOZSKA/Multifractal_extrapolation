@@ -21,13 +21,10 @@ class multifractals:
 
         self.momenta_flux = pa.flux_momenta()
         self.momenta_inc = pa.inc_momenta()
-        self.field_inc_scaling = mse.scaling_increments(self.field, self.momenta_inc, pa.max_scale(), pa.min_scale(), pa.scale_coeff(), 'moment')
-        self.scales_inc = mse.scaling_increments(self.field, self.momenta_inc, pa.max_scale(), pa.min_scale(), pa.scale_coeff(), 'scale')          
+        [self.scales_inc, self.field_inc_scaling] = mse.scaling_increments(self.field, self.momenta_inc, pa.max_scale(), pa.min_scale(), pa.scale_coeff())          
         self.flux = mse.fluxes(self.field, 1.0)
-        self.flux_scaling = mse.scaling(self.flux, self.momenta_flux, pa.max_scale(), pa.min_scale(), pa.scale_coeff(), 1.0, 'moment') 
-        self.scales_flux = mse.scaling(self.flux, self.momenta_flux, pa.max_scale(), pa.min_scale(), pa.scale_coeff(), 1.0, 'scale') 
-        self.K = mse.UM_parameters(self.flux_scaling, self.field_inc_scaling, self.scales_flux, self.scales_inc, self.momenta_flux, self.momenta_inc, 'K')
-        self.parameters = mse.UM_parameters(self.flux_scaling, self.field_inc_scaling, self.scales_flux, self.scales_inc, self.momenta_flux, self.momenta_inc, 'parameters')
+        [self.scales_flux, self.flux_scaling] = mse.scaling(self.flux, self.momenta_flux, pa.max_scale(), pa.min_scale(), pa.scale_coeff(), 1.0, 'moment')  
+        [self.K, self.parameters] = mse.UM_parameters(self.flux_scaling, self.field_inc_scaling, self.scales_flux, self.scales_inc, self.momenta_flux, self.momenta_inc)
 
 # The UM_parameters contains: [H, alpha, C_1, outer scale of process, fluctuations proportionality constant, UM fit error]. Please note that the outer_scale calculated through the UM_parameters function is in the units of the regional scale.
 
