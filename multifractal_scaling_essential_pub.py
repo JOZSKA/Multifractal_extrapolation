@@ -5,11 +5,13 @@
 
 import numpy as np
 import multifractal_basic_functions_pub as mbf
+from multifractal_parameter_values_pub import masking_value
 
 
+mask = masking_value() # The values of fields are masked by 'mask' value that is set in the parameters module. Masking typically means land.
 
 
-# This function computes the fluxes for a specific distribution given by the `field' variable. The function computes the fluxes at the scale given by the `step_size' variable. The fluxes are computed by a simple method of taking `delta field / mean(delta field)' and averaging this quantity through a circle originating at the point of the flux value. It is assumed that field = 0 means `masked' (land). The details of this computation are just a special case of the function scaling_increments(...).
+# This function computes the fluxes for a specific distribution given by the `field' variable. The function computes the fluxes at the scale given by the `step_size' variable. The fluxes are computed by a simple method of taking `delta field / mean(delta field)' and averaging this quantity through a circle originating at the point of the flux value. The details of this computation are just a special case of the function scaling_increments(...).
 
 
 def fluxes(field, step_size):
@@ -17,7 +19,7 @@ def fluxes(field, step_size):
     step_size = int(step_size)
     region_height = np.shape(field)[0]
     region_width = np.shape(field)[1]
-    flux = np.zeros((region_height, region_width))
+    flux = np.ones((region_height, region_width))*mask
     n_steps_lon = int(mbf.round_down(region_width/(step_size+0.0)))
     n_steps_lat = int(mbf.round_down(region_height/(step_size+0.0)))
     center = int((step_size-1)/2.0)
@@ -25,14 +27,14 @@ def fluxes(field, step_size):
     for lon in range(0, n_steps_lon):
         for lat in range(0, n_steps_lat):
 
-            if field[lat*step_size+center, lon*step_size+center] != 0:
+            if field[lat*step_size+center, lon*step_size+center] != mask:
 
                 rel_case = 0
 
                 for n in range(max((lon-1)*step_size+center,0),min((lon+1)*step_size+center+1,region_width), step_size):
                     for m in range(max((lat-1)*step_size+center,0),min((lat+1)*step_size+center+1,region_height), step_size): 
 
-                        if field[m,n] != 0:
+                        if field[m,n] != mask:
 
                             flux[lat*step_size : lat*step_size+2*center+1, lon*step_size : lon*step_size+2*center+1] += np.abs(field[m,n]-field[lat*step_size+center, lon*step_size+center])
                             rel_case+=1
@@ -41,7 +43,7 @@ def fluxes(field, step_size):
 
                     flux[lat, lon]=flux[lat, lon]/(rel_case-1.0)
           
-    return flux/np.mean(flux[flux != 0])
+    return flux/np.mean(flux[flux != mask])
 
 
 
@@ -119,7 +121,7 @@ def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, outpu
              
                             field_box = field[coordinate_lat_1 : coordinate_lat_2, coordinate_long_1 : coordinate_long_2]
                             box_size_pixels = (coordinate_long_2 + 1 - coordinate_long_1)*(coordinate_lat_2 + 1 - coordinate_lat_1)
-                            sea_n_box_pixels = len(field_box[field_box != 0])+0.0
+                            sea_n_box_pixels = len(field_box[field_box != mask])+0.0
                             box_importance = sea_n_box_pixels/(4*total_n_pixels_sea)
 
 
@@ -128,15 +130,15 @@ def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, outpu
             
                             if (output == 'moment') & (sea_n_box_pixels > 0):
             
-                                het += box_importance * (np.mean(field_box[field_box != 0])/mean_field_region)**momenta
+                                het += box_importance * (np.mean(field_box[field_box != mask])/mean_field_region)**momenta
               
                             if (output == 'variance') & (sea_n_box_pixels > 1):
   
-                                het += box_importance * np.var(field_box[field_box != 0])
+                                het += box_importance * np.var(field_box[field_box != mask])
    
                             if (output == 'st_deviation') & (sea_n_box_pixels > 1): 
   
-                                het += box_importance * np.sqrt(np.var(field_box[field_box != 0]))/mean_field_region
+                                het += box_importance * np.sqrt(np.var(field_box[field_box != mask]))/mean_field_region
                             
                 mean_het.append(het)
                 scale = np.append(scale, np.sqrt(eff_n_box_pixels/n_pixels))
@@ -184,7 +186,7 @@ def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff):
           
                             if (region_width > coordinate_long >= 0) & (region_height > coordinate_lat >= 0):
             
-                                if (field[pixel_lat, pixel_long] != 0) & (field[coordinate_lat, coordinate_long] != 0):                              
+                                if (field[pixel_lat, pixel_long] != mask) & (field[coordinate_lat, coordinate_long] != mask):                              
                          
                                     delta += np.abs(field[pixel_lat, pixel_long]-field[coordinate_lat, coordinate_long])**momenta
                                     cases+=1            

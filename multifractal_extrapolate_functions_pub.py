@@ -10,6 +10,7 @@ from copy import deepcopy
 import multifractal_parameter_values_pub as mpv
 
 
+mask = mpv.masking_value()
 
 # This function lowers the resolution of a distribution, by a simple identity extrapolation. The code is self-explanatory.
 
@@ -42,10 +43,10 @@ def smoothen(field, level_1, level_2, power):
         for subpixel_lon in range(0, region_width):
             for subpixel_lat in range(0, region_height): 
      
-                if field[subpixel_lat, subpixel_lon] != 0:    # if the sub-pixel is sea then go on
+                if field[subpixel_lat, subpixel_lon] != mask:    # if the sub-pixel is sea then go on
        
                     field_box = field[max(0, subpixel_lat-step):min(region_height,subpixel_lat+step+1), max(0, subpixel_lon-step):min(region_width,subpixel_lon+step+1)]
-                    field_smooth[subpixel_lat, subpixel_lon] = np.mean(field_box[field_box != 0])     # This does the smoothening via supplying the averaged value at the level_1 scale.
+                    field_smooth[subpixel_lat, subpixel_lon] = np.mean(field_box[field_box != mask])     # This does the smoothening via supplying the averaged value at the level_1 scale.
      
 # This next step tries to modify the smoothened values in order to recover the correct mean values at the scale `level_2'. It does so by stretching the differences between field values to obtain the right balance. The level of stretching is provided by the `power' value.
 
@@ -53,14 +54,14 @@ def smoothen(field, level_1, level_2, power):
             for subpixel_lon in range(0, int(mbf.round_up(region_width/(level_2+0.0)))):
                 for subpixel_lat in range(0, int(mbf.round_up(region_height/(level_2+0.0)))): 
        
-                    if np.mean(field[subpixel_lat*level_2 : min((subpixel_lat+1)*level_2, region_height), subpixel_lon*level_2 : min((subpixel_lon+1)*level_2, region_width)]) != 0:    # if the pixel is on sea, go on
+                    if np.mean(field[subpixel_lat*level_2 : min((subpixel_lat+1)*level_2, region_height), subpixel_lon*level_2 : min((subpixel_lon+1)*level_2, region_width)]) != mask:    # if the pixel is on sea, go on
        
                         # This records the smoothened and the ``raw'' value to compare
 
                         field_smooth_box = field_smooth[subpixel_lat*level_2 : min((subpixel_lat+1)*level_2, region_height), subpixel_lon*level_2 : min((subpixel_lon+1)*level_2, region_width)]
                         field_box =  field[subpixel_lat*level_2 : min((subpixel_lat+1)*level_2, region_height), subpixel_lon*level_2 : min((subpixel_lon+1)*level_2, region_width)]
-                        mean_smooth = np.mean(field_smooth_box[field_smooth_box != 0])
-                        mean_field = np.mean(field_box[field_smooth_box != 0])
+                        mean_smooth = np.mean(field_smooth_box[field_smooth_box != mask])
+                        mean_field = np.mean(field_box[field_smooth_box != mask])
     
                        # if the values are not equal, this algorithm stretches the smoothened value to get the match. The two cases where the smoothened value is smaller / bigger than the desired value are dealt with separately.
 
@@ -68,27 +69,27 @@ def smoothen(field, level_1, level_2, power):
 
                         if mean_smooth < mean_field:
          
-                            delta = np.mean(np.abs(field_smooth_box[field_smooth_box != 0] - min(field_smooth_box[field_smooth_box != 0]))**power)     
+                            delta = np.mean(np.abs(field_smooth_box[field_smooth_box != mask] - min(field_smooth_box[field_smooth_box != mask]))**power)     
          
                             if delta != 0:
-                                C = (mean_field - min(field_smooth_box[field_smooth_box != 0]))/delta
+                                C = (mean_field - min(field_smooth_box[field_smooth_box != mask]))/delta
                             else:
                                 C = 0
      
-                            field_smooth_box[field_smooth_box != 0]= min(field_smooth_box[field_smooth_box != 0]) + C*(field_smooth_box[field_smooth_box != 0]-min(field_smooth_box[field_smooth_box != 0]))**power   # C and power provide the stretching
+                            field_smooth_box[field_smooth_box != mask] = min(field_smooth_box[field_smooth_box != mask]) + C*(field_smooth_box[field_smooth_box != mask]-min(field_smooth_box[field_smooth_box != mask]))**power   # C and power provide the stretching
      
                # Case 2
     
                         if mean_smooth > mean_field:
      
-                            delta = np.mean(np.abs(field_smooth_box[field_smooth_box != 0] - max(field_smooth_box[field_smooth_box != 0]))**power)    
+                            delta = np.mean(np.abs(field_smooth_box[field_smooth_box != mask] - max(field_smooth_box[field_smooth_box != mask]))**power)    
     
                             if delta != 0: 
-                                C = (max(field_smooth_box[field_smooth_box != 0])-mean_field)/delta 
+                                C = (max(field_smooth_box[field_smooth_box != mask])-mean_field)/delta 
                             else: 
                                 C = 0
       
-                            field_smooth_box[field_smooth_box != 0]= max(field_smooth_box[field_smooth_box != 0]) - C*(max(field_smooth_box[field_smooth_box != 0])-field_smooth_box[field_smooth_box != 0])**power
+                            field_smooth_box[field_smooth_box != mask]= max(field_smooth_box[field_smooth_box != mask]) - C*(max(field_smooth_box[field_smooth_box != mask])-field_smooth_box[field_smooth_box != mask])**power
   
      
                         field_smooth[subpixel_lat*level_2: min((subpixel_lat+1)*level_2, region_height), subpixel_lon*level_2: min((subpixel_lon+1)*level_2, region_width)] = field_smooth_box
@@ -154,16 +155,19 @@ def fluxes_extrapolate(flux, n_iterations, UM_parameters):
 
   # The outcome of the extrapolation.
 
-    flux_extrapolated = np.zeros((region_height, region_width))
+    flux_extrapolated = np.ones((region_height, region_width))*mask
 
   # The loop that runs through individual pixels on the extrapolated grid.
 
     for lat in range(0, region_height):
 
         for lon in range(0, region_width):
+
+            if flux[lat/2**n_iterations, lon/2**n_iterations] != mask:
     
-            factor = np.random.choice(mpv.PDF_argument(), p = PDF/sum(PDF))  # obtain from the randomly generated value the extrapolation factor.
-            flux_extrapolated[lat, lon] = factor*flux[lat/2**n_iterations, lon/2**n_iterations]  # Determine the flux at the lower scales.
+                factor = np.random.choice(mpv.PDF_argument(), p = PDF/sum(PDF))  # obtain from the randomly generated value the extrapolation factor.
+                flux_extrapolated[lat, lon] = factor*flux[lat/2**n_iterations, lon/2**n_iterations]  # Determine the flux at the lower scales.
+
 
     return flux_extrapolated
     
@@ -182,9 +186,9 @@ def fluctuations_distribute(field, flux, factor, ratio_bound):
     region_width = np.shape(field)[1]
 
     case = np.zeros((region_height, region_width))    # This variable stores the information about the pixels that were connected. The pixels that were connected are the ones where the `case' variable has the same integer value. The value grown with the `step' variable.
-    case[field == 0] = - 1   # Wherever the pixels are irrelevant (land), the value of case is negative one.
+    case[field == mask] = - 1   # Wherever the pixels are irrelevant (land), the value of case is negative one.
     ratio = 0.0       # `ratio' measures the ratio of pixels at which the fluctuations have been redistributed.
-    n_sea_pixels = len(field[field != 0]) + 0.0   # This is number of relevant pixels (sea).
+    n_sea_pixels = len(field[field != mask]) + 0.0   # This is number of relevant pixels (sea).
     step = 1  # The value of `step' variable is initially set to 1.
           
 

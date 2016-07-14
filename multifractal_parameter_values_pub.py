@@ -26,3 +26,6 @@ def ratio_bound():
 
 def PDF_argument():
     return np.linspace(0.0001,140,num=100000)    
+
+def masking_value():
+    return 0
