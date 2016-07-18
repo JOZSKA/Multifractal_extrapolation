@@ -39,9 +39,9 @@ def fluxes(field, step_size):
                             flux[lat*step_size : lat*step_size+2*center+1, lon*step_size : lon*step_size+2*center+1] += np.abs(field[m,n]-field[lat*step_size+center, lon*step_size+center])
                             rel_case+=1
               
-                if rel_case > 1: 
+                if rel_case >= 1: 
 
-                    flux[lat, lon]=flux[lat, lon]/(rel_case-1.0)
+                    flux[lat, lon]=(flux[lat, lon] - mask)/(rel_case + 0.0)
           
     return flux/np.mean(flux[flux != mask])
 
