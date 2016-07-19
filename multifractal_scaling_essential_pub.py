@@ -13,37 +13,38 @@ mask = masking_value() # The values of fields are masked by 'mask' value that is
 
 # This function computes the fluxes for a specific distribution given by the `field' variable. The function computes the fluxes at the scale given by the `step_size' variable. The fluxes are computed by a simple method of taking `delta field / mean(delta field)' and averaging this quantity through a circle originating at the point of the flux value. The details of this computation are just a special case of the function scaling_increments(...).
 
-
 def fluxes(field, step_size):
 
-    step_size = int(step_size)
     region_height = np.shape(field)[0]
     region_width = np.shape(field)[1]
     flux = np.ones((region_height, region_width))*mask
-    n_steps_lon = int(mbf.round_down(region_width/(step_size+0.0)))
-    n_steps_lat = int(mbf.round_down(region_height/(step_size+0.0)))
-    center = int((step_size-1)/2.0)
-  
-    for lon in range(0, n_steps_lon):
-        for lat in range(0, n_steps_lat):
+    
+    for lon in range(0, region_width):
+        for lat in range(0, region_height):
 
-            if field[lat*step_size+center, lon*step_size+center] != mask:
+            if field[lat,lon] != mask:
 
                 rel_case = 0
 
-                for n in range(max((lon-1)*step_size+center,0),min((lon+1)*step_size+center+1,region_width), step_size):
-                    for m in range(max((lat-1)*step_size+center,0),min((lat+1)*step_size+center+1,region_height), step_size): 
+                for sublat in np.arange(max(lat-round(step_size),0), min(region_height, lat+round(step_size)+1)):
+                    for sublon in np.arange(max(lon-round(step_size),0), min(region_width, lon+round(step_size)+1)):
 
-                        if field[m,n] != mask:
-
-                            flux[lat*step_size : lat*step_size+2*center+1, lon*step_size : lon*step_size+2*center+1] += np.abs(field[m,n]-field[lat*step_size+center, lon*step_size+center])
-                            rel_case+=1
+                        if (round(np.sqrt((sublon-lon)**2+(sublat-lat)**2)) == round(step_size)) & (field[sublat, sublon] != mask):
+ 
+                            flux[lat,lon] += np.abs(field[sublat,sublon] - field[lat,lon]) 
+                            rel_case += 1
+                                                       
+                        
               
                 if rel_case >= 1: 
 
-                    flux[lat, lon]=(flux[lat, lon] - mask)/(rel_case + 0.0)
-          
+                    flux[lat, lon] = (flux[lat, lon] - mask)/(rel_case + 0.0)
+
+                    
     return flux/np.mean(flux[flux != mask])
+
+
+
 
 
 
