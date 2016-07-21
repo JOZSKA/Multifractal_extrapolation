@@ -40,8 +40,10 @@ def fluxes(field, step_size):
 
                     flux[lat, lon] = (flux[lat, lon] - mask)/(rel_case + 0.0)
 
+
+    flux[flux != mask] = flux[flux != mask] / np.mean(flux[flux != mask])
                     
-    return flux/np.mean(flux[flux != mask])
+    return flux
 
 
 
