@@ -8,15 +8,16 @@ import multifractal_basic_functions_pub as mbf
 from multifractal_parameter_values_pub import masking_value
 
 
-mask = masking_value() # The values of fields are masked by 'mask' value that is set in the parameters module. Masking typically means land.
 
+# This function computes the fluxes for a specific distribution given by the `field' variable. The function computes the fluxes at the scale given by the `step_size' variable. The fluxes are computed by a simple method of taking `delta field / mean(delta field)' and averaging this quantity through a circle originating at the point of the flux value. The details of this computation are just a special case of the function scaling_increments(...). The last two variables are latitudes and mask, counting for geometric corrections (geometric distance - see comments in multifractal_class_pub) and a value that indicates mask.
 
-# This function computes the fluxes for a specific distribution given by the `field' variable. The function computes the fluxes at the scale given by the `step_size' variable. The fluxes are computed by a simple method of taking `delta field / mean(delta field)' and averaging this quantity through a circle originating at the point of the flux value. The details of this computation are just a special case of the function scaling_increments(...).
+def fluxes(field, step_size, latitudes, mask):
 
-def fluxes(field, step_size):
+    
+    theta = np.mean(latitudes[field != mask])
+    geometric_factor = np.cos(np.pi*theta/180.0)
 
-    region_height = np.shape(field)[0]
-    region_width = np.shape(field)[1]
+    (region_height, region_width) = np.shape(field)
     flux = np.ones((region_height, region_width))*mask
     
     for lon in range(0, region_width):
@@ -27,9 +28,9 @@ def fluxes(field, step_size):
                 rel_case = 0
 
                 for sublat in np.arange(max(lat-round(step_size),0), min(region_height, lat+round(step_size)+1)):
-                    for sublon in np.arange(max(lon-round(step_size),0), min(region_width, lon+round(step_size)+1)):
+                    for sublon in np.arange(max(lon-round(step_size/geometric_factor),0), min(region_width, lon+round(step_size/geometric_factor)+1)):
 
-                        if (round(np.sqrt((sublon-lon)**2+(sublat-lat)**2)) == round(step_size)) & (field[sublat, sublon] != mask):
+                        if (round(np.sqrt(((sublon-lon)*geometric_factor)**2+(sublat-lat)**2)) == round(step_size)) & (field[sublat, sublon] != mask):
  
                             flux[lat,lon] += np.abs(field[sublat,sublon] - field[lat,lon]) 
                             rel_case += 1
@@ -40,8 +41,10 @@ def fluxes(field, step_size):
 
                     flux[lat, lon] = (flux[lat, lon] - mask)/(rel_case + 0.0)
 
+
+    flux[flux != mask] = flux[flux != mask] / np.mean(flux[flux != mask])
                     
-    return flux/np.mean(flux[flux != mask])
+    return flux
 
 
 
@@ -52,13 +55,17 @@ def fluxes(field, step_size):
  
 #This function is more general than just for the purpose of calculating statistical moments, it can calculate also mean variance per box, or mean standard deviation per box, as well as the scale ratio at which the fluxes were computed. What is calculated is determined by the `output' variable with possible four values: output = (moment, variance, st_deviation).
 
+#As before, there are two more arguments: latitudes and mask.
 
-def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, output):
+def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, output, latitudes, mask):
 
 # Defines main parameters used in the calculation.
 
-    region_height = np.shape(field)[0]
-    region_width = np.shape(field)[1]
+
+    theta = np.mean(latitudes[field != mask])
+    geometric_factor = np.cos(np.pi*theta/180.0)
+
+    (region_height,region_width) = np.shape(field)
     n_pixels = region_width*region_height
     mean_field_region = np.mean(field[field != 0])
     mean_het = []
@@ -72,9 +79,9 @@ def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, outpu
 
     while length < scale_max:    
 
-        n_box_pixels = np.round(length**2.0)+0.0
-        n_box_pixels_lat = np.round(np.sqrt(n_box_pixels/anisotropy))+0.0
-        n_box_pixels_long = np.round(np.sqrt(n_box_pixels*anisotropy))+0.0
+        n_box_pixels = np.round(length**2.0/geometric_factor)+0.0
+        n_box_pixels_lat = np.round(np.sqrt(n_box_pixels*geometric_factor/anisotropy))+0.0
+        n_box_pixels_long = np.round(np.sqrt(n_box_pixels*anisotropy/geometric_factor))+0.0
         eff_n_box_pixels = n_box_pixels_lat*n_box_pixels_long       # Deals with the discrete grid (lattice) structure where eff_n_box pixels != n_box_pixels
 
         het = np.zeros((n_moments))
@@ -148,16 +155,17 @@ def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, outpu
         step+=1     
         
    
-    return [scale, np.asarray(mean_het)]
+    return np.asarray(mean_het), scale
 
 
 
 # This function computes the field increments scaling. It has the same structure as the previous function (for the details see the function scaling(...)), except the output is always 'moments'. The increments are computed around the circle with the radius = scale across all the relevant points of the region. It is as always assumed that field = 0 means `masked', or in other words land. The scale is here returned with values in grid pixels, rather than in values of the maximal scale. This is a difference to the previous scaling(...) function.
 
-def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff): 
+#As before, there are two more arguments: latitudes and mask.
 
-    region_height = np.shape(field)[0]
-    region_width = np.shape(field)[1]
+def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff, latitudes, mask): 
+
+    (region_height, region_width) = np.shape(field)
     scale = np.array([])
     delta_field = []
     step=1.0
@@ -175,33 +183,30 @@ def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff):
 
 # This inner loop goes through the circle with radius = scale and the center at the individual point of the outer loop.
         
-                for substep in range(0,int(step)):
-                    for sign_1 in range(-1,2,2):
-                        for sign_2 in range(-1,2,2):
+                for n_x in range(int(-length),int(length)+1):
+                    for sign in range(-1,2,2):
 
-                            n_x=scale_min*scale_coeff**substep
-                            n_y=np.round(np.sqrt(length**2-n_x**2))
-                            n_x=np.round(n_x)
-                            coordinate_long = pixel_long + n_x*(-1)**sign_1
-                            coordinate_lat = pixel_lat + n_y*(-1)**sign_2
+                        n_y = sign*np.round(np.sqrt(length**2-n_x**2))
+                        coordinate_long = pixel_long + n_x/np.cos(np.pi*latitudes[pixel_lat, pixel_long]/180.0)
+                        coordinate_lat = pixel_lat + n_y
           
-                            if (region_width > coordinate_long >= 0) & (region_height > coordinate_lat >= 0):
+                        if (region_width > coordinate_long >= 0) & (region_height > coordinate_lat >= 0):
             
-                                if (field[pixel_lat, pixel_long] != mask) & (field[coordinate_lat, coordinate_long] != mask):                              
+                            if (field[pixel_lat, pixel_long] != mask) & (field[coordinate_lat, coordinate_long] != mask):                              
                          
-                                    delta += np.abs(field[pixel_lat, pixel_long]-field[coordinate_lat, coordinate_long])**momenta
-                                    cases+=1            
+                                delta += np.abs(field[pixel_lat, pixel_long]-field[coordinate_lat, coordinate_long])**momenta
+                                cases+=1            
           
         if cases > 10: 
-            delta_field.append(delta/cases)
+            delta_field.append(delta/(cases+0.0))
             scale=np.append(scale, length)
 
         length = scale_min*scale_coeff**step
         step+=1    
         
                 
+    return np.asarray(delta_field), scale[0:len(delta_field)]
 
-    return [scale[0:len(delta_field)], np.asarray(delta_field)]
 
 
 
@@ -226,7 +231,7 @@ def UM_fit(K, momenta, C_min, C_max, C_step):
                 alpha_fit = alpha
                 C_fit = C
         
-    return [alpha_fit, C_fit, error]
+    return alpha_fit, C_fit, error
 
 
 
@@ -250,7 +255,7 @@ def UM_parameters(flux_scaling, inc_scaling, scales_flux, scales_inc, momenta_fl
     outer_scale = np.exp(a_flux[9]/K[9])
     sc_flux_parameters = UM_fit(K, momenta_flux, 0, 2.0, 0.001)
 
-    return [K, np.array([H, sc_flux_parameters[0], sc_flux_parameters[1], outer_scale, np.exp(a_inc), sc_flux_parameters[2]])]
+    return K, np.array([H, sc_flux_parameters[0], sc_flux_parameters[1], outer_scale, np.exp(a_inc), sc_flux_parameters[2]])
     
 
 

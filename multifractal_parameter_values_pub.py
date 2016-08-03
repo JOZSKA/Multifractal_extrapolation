@@ -1,6 +1,6 @@
 # Jozef Skakala, PML, 2016.
 
-# This short module contains some generic parameter values.
+# This short module contains some generic parameter values. They are mostly used as default settings in the situation when the user does not state her own preferences.
 
 
 import numpy as np

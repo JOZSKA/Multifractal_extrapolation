@@ -7,17 +7,15 @@ import numpy as np
 import multifractal_basic_functions_pub as mbf
 import random as rn
 from copy import deepcopy
-import multifractal_parameter_values_pub as mpv
+import multifractal_parameter_values_pub as pa
 
 
-mask = mpv.masking_value()
 
 # This function lowers the resolution of a distribution, by a simple identity extrapolation. The code is self-explanatory.
 
 def lower_resolution(field, level):
  
-    region_height = np.shape(field)[0]
-    region_width = np.shape(field)[1]
+    (region_height, region_width) = np.shape(field)
     field_low_resolution = np.zeros((level*region_height, level*region_width))
  
     for pixel_lon in range(0, region_width):
@@ -31,11 +29,10 @@ def lower_resolution(field, level):
 
 # This function provides a smoothening algorithm. (Haven't found anything equally suitable.) The algirthms is based on obtaining a smoothened field using the `level_1'-scale averaging. The field is also set to recover the correct mean values at the `level_2' scale.
 
-def smoothen(field, level_1, level_2, power):
+def smoothen(field, level_1, level_2, power, mask):
 
     step = (level_1-1)/2.0  # this is initial smoothening scale
-    region_height = np.shape(field)[0]
-    region_width = np.shape(field)[1]
+    (region_height, region_width) = np.shape(field)
     field_smooth = np.zeros((region_height, region_width))   # this is soothened field
  
     for iterate in range(1, 6):   # there are 5 steps in which the smoothening procedure will be repeated. In each step the averaging and stretching approaches the ideally smoothened distribution more.
@@ -105,9 +102,8 @@ def smoothen(field, level_1, level_2, power):
 # This function redistributes the coordinates on the extrapolated smaller grid. It returns the coordinates of the smaller grid cells. `Info' variable contains information about whether longitudes, or latitudes are being extrapolated.
 
 def extrapolate_coord(coordinates, n_iterations, info):
-    region_size = np.shape(coordinates)
-    region_height = region_size[0]
-    region_width = region_size[1]
+
+    (region_height, region_width) = np.shape(coordinates)
     coordinates_extrapolated = np.zeros((region_height*2**n_iterations, region_width*2**n_iterations))
      
     for pix_lon in range(0, int(region_width*2**n_iterations)):
@@ -131,7 +127,7 @@ def extrapolate_coord(coordinates, n_iterations, info):
 # This stochastically redistributes fluxes at a lower scale using the universal multifractal model.
 
 
-def fluxes_extrapolate(flux, n_iterations, UM_parameters):
+def fluxes_extrapolate(flux, n_iterations, UM_parameters, mask):
 
  # This reads all the multifractal information
 
@@ -165,7 +161,7 @@ def fluxes_extrapolate(flux, n_iterations, UM_parameters):
 
             if flux[lat/2**n_iterations, lon/2**n_iterations] != mask:
     
-                factor = np.random.choice(mpv.PDF_argument(), p = PDF/sum(PDF))  # obtain from the randomly generated value the extrapolation factor.
+                factor = np.random.choice(pa.PDF_argument(), p = PDF/sum(PDF))  # obtain from the randomly generated value the extrapolation factor.
                 flux_extrapolated[lat, lon] = factor*flux[lat/2**n_iterations, lon/2**n_iterations]  # Determine the flux at the lower scales.
 
 
@@ -177,13 +173,12 @@ def fluxes_extrapolate(flux, n_iterations, UM_parameters):
 # This function stochastically redistributes fluctuations corresponding to fluxes at a lower scale. 
 
 
-def fluctuations_distribute(field, flux, factor, ratio_bound):
+def fluctuations_distribute(field, flux, factor, ratio_bound, mask):
 
 # Define the extrapolated field and regional parameters.
 
     field_extrapolated = deepcopy(field)
-    region_height = np.shape(field)[0]
-    region_width = np.shape(field)[1]
+    (region_height, region_width) = np.shape(field)
 
     case = np.zeros((region_height, region_width))    # This variable stores the information about the pixels that were connected. The pixels that were connected are the ones where the `case' variable has the same integer value. The value grown with the `step' variable.
     case[field == mask] = - 1   # Wherever the pixels are irrelevant (land), the value of case is negative one.
