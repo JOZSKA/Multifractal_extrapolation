@@ -240,14 +240,24 @@ def UM_fit(K, momenta, C_min, C_max, C_step):
 
 def UM_parameters(flux_scaling, inc_scaling, scales_flux, scales_inc, momenta_flux, momenta_inc):
  
-    scales_flux = scales_flux[np.argwhere(flux_scaling[:,10]>1)][:,0]
-    flux_scaling = flux_scaling[0:len(scales_flux),:]
     H =  np.cov(np.log(inc_scaling[: , np.argwhere(momenta_inc == 1)[0][0]]), np.log(scales_inc))[0][1]/np.var(np.log(scales_inc))
     a_inc = np.mean(np.log(inc_scaling[: , np.argwhere(momenta_inc == 1)[0][0]])) - H*np.mean(np.log(scales_inc))        
     n_moments = len(momenta_flux)
     K = np.zeros((n_moments))
     a_flux = np.zeros((n_moments))   
     
+    scale_max = (2/3.0)*len(scales_flux) # upper bound on the range of scales at which the Log-log curve is linear
+
+    for corr in range(0,4):   # This loop fixes the range of scales at which the scaling slopes are analysed (the loop should converge to the range of scales where the Log-log scaling curves are roughly linear).
+
+        K_test = np.cov(-np.log(flux_scaling[:scale_max, 10]), np.log(scales_flux[:scale_max]))[0][1]/np.var(np.log(scales_flux[:scale_max]))
+        a_test = np.mean(np.log(flux_scaling[:scale_max, 10])) + K_test*np.mean(np.log(scales_flux[:scale_max]))
+        line = -K_test*np.log(scales_flux) + a_test
+        scale_max = (2/3.0)*len(line[line>0])
+
+    scales_flux = scales_flux[:scale_max]
+    flux_scaling = flux_scaling[0:scale_max,:]
+
     for moment in range(0,n_moments):
         K[moment] = np.cov(-np.log(flux_scaling[: , moment]), np.log(scales_flux))[0][1]/np.var(np.log(scales_flux))
         a_flux[moment] = np.mean(np.log(flux_scaling[: , moment])) + K[moment]*np.mean(np.log(scales_flux))
