@@ -246,9 +246,9 @@ def UM_parameters(flux_scaling, inc_scaling, scales_flux, scales_inc, momenta_fl
     K = np.zeros((n_moments))
     a_flux = np.zeros((n_moments))   
     
-    scale_max = (2/3.0)*len(scales_flux) # upper bound on the range of scales at which the Log-log curve is linear
+    scale_max = (2/3.0)*len(scales_flux) # scale_max gives the upper scale of the flux scaling Log-log linear interpolation. Due to flux homogeneity scale the Log-log scaling eventually deviates from the straight line and there is only limited range of scales where the linear fit makes good sense. (In the best case scenario the linear scaling breakdown will be close to the flux homogeneity scale.)
 
-    for corr in range(0,4):   # This loop fixes the range of scales at which the scaling slopes are analysed (the loop should converge to the range of scales where the Log-log scaling curves are roughly linear).
+    for corr in range(0,4):   # This loop fixes the range of scales of the linear interpolation (the loop should converge to some range of scales where the Log-log scaling curves are roughly straight lines).
 
         K_test = np.cov(-np.log(flux_scaling[:scale_max, 10]), np.log(scales_flux[:scale_max]))[0][1]/np.var(np.log(scales_flux[:scale_max]))
         a_test = np.mean(np.log(flux_scaling[:scale_max, 10])) + K_test*np.mean(np.log(scales_flux[:scale_max]))
