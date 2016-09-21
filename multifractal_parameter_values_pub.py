@@ -29,3 +29,7 @@ def PDF_argument():
 
 def masking_value():
     return 0
+
+def scales(max_scale, min_scale, scale_coeff):
+    n_iterations = int((np.log(max_scale) - np.log(min_scale))/np.log(scale_coeff))
+    return min_scale*scale_coeff**np.arange(0,n_iterations+1)

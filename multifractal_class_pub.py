@@ -1,7 +1,7 @@
 
 # Jozef Skakala, PML, 2016.
 
-# Here is the class that has a distribution ('field' argument) as an input and returns the complete multifractal information about the distribution. It computes the UM scaling using all the functions defined in the `multifractal_scaling_essential_pub' module. The names of the attributes are self-explanatory, perhaps with the exception of 'K', which is the standard notation for the moment scaling function. Besides the field distribution input, other optional arguments are 'latitudes', 'momenta_flux', 'momenta_inc', 'max_scale', 'min_scale', 'scale_coeff', 'mask'. If the optional arguments are skipped, the arguments take their default values from the multifractal_parameter_pub module. The 'latitudes' argument is supplied to calculate the physical distance from the longitudal (spherical) coordinate distance. It can be also used to reflect on grid pixels that have unequal length in longitude and latitude directions.
+# Here is the class that has a distribution ('field' argument) as an input and returns the complete multifractal information about the distribution. It computes the UM scaling using all the functions defined in the `multifractal_scaling_essential_pub' module. The names of the attributes are self-explanatory, perhaps with the exception of 'K', which is the standard notation for the moment scaling function. Besides the field distribution input, other optional arguments are 'latitudes', 'momenta_flux', 'momenta_inc', 'max_scale', 'min_scale', 'scale_coeff', 'mask' and 'scales_inc'. If the optional arguments are skipped, the arguments take their default values from the multifractal_parameter_pub module. The 'latitudes' argument is supplied to calculate the physical distance from the longitudal (spherical) coordinate distance. It can be also used to reflect on grid pixels that have unequal length in longitude and latitude directions. The increments scaling calculation can be computationally costly and therefore one can choose optimal range of scales for the analysis through the 'scales_inc' argument. It can be argued that the multiplicative (log-homogeneous) cascade from the default settings (pa.scales(...)) is for the increments scaling analysis far from optimal. One for example might prefer to use homogeneously spread scales with a suitable scaling gap. 
 
 
 
@@ -55,12 +55,18 @@ class multifractals:
         else:
             mask = pa.masking_value()  
 
+        if 'scales_inc' in kwargs:
+            scales_inc_an = kwargs['scales_inc']
+        else:
+            scales_inc_an = pa.scales(max_scale, min_scale, scale_coeff)
+
+
         self.description = "Field with multifractal properties - the subject to the analysis."
         self.author = "JS"
 
 # Provides the multifractal scaling calculation..
 
-        (self.field_inc_scaling, self.scales_inc) = mse.scaling_increments(self.field, momenta_inc, max_scale, min_scale, scale_coeff, latitudes, mask)          
+        (self.field_inc_scaling, self.scales_inc) = mse.scaling_increments(self.field, momenta_inc, scales_inc_an, latitudes, mask)          
 
         self.flux = mse.fluxes(self.field, 1.0, latitudes, mask)
 

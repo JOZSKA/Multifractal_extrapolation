@@ -1,5 +1,5 @@
 # Author: Jozef Skakala, PML, 2016 
-# This is the core function for the extrapolation. Plug in field at larger scales ('field') and obtain returned field at lower scales (determined by the iteraion exponent: `n_iterations').  Besides the field distribution input and number of iterations, other optional arguments are 'latitudes', 'momenta_flux', 'momenta_inc', 'max_scale', 'min_scale', 'scale_coeff', 'mask' and 'ratio_bound'. If the optional arguments are skipped, the arguments take their default values from the multifractal_parameter_pub module. The 'latitudes' argument is supplied to calculate the physical distance from the longitudal (spherical) coordinate distance. It can be also used to reflect on grid pixels that have unequal length in longitude and latitude directions. The additional arguments (as listed before) are separately introduced as optional in both multifractal_extrapolation_pub and multifractal_class_pub, instead of just being passed as the essential arguments to the multifractal_class_pub. The reason for this is that multifractal_class_pub stands as a separate computational tool in the situations when one is interested only in the scaling analysis and not in the field extrapolation.
+# This is the core function for the extrapolation. Plug in field at larger scales ('field') and obtain returned field at lower scales (determined by the iteraion exponent: `n_iterations').  Besides the field distribution input and number of iterations, other optional arguments are 'latitudes', 'momenta_flux', 'momenta_inc', 'max_scale', 'min_scale', 'scale_coeff', 'mask', 'scales_inc' and 'ratio_bound'. If the optional arguments are skipped, the arguments take their default values from the multifractal_parameter_pub module. The 'latitudes' argument is supplied to calculate the physical distance from the longitudal (spherical) coordinate distance. It can be also used to reflect on grid pixels that have unequal length in longitude and latitude directions. The increments scaling calculation can be computationally costly and therefore one can choose optimal range of scales for the analysis through the 'scales_inc' argument. It can be argued that the multiplicative (log-homogeneous) cascade from the default settings (pa.scales(...)) is for the increments scaling analysis far from optimal. One for example might prefer to use homogeneously spread scales with a suitable scaling gap. The additional arguments (as listed before) are separately introduced as optional in both multifractal_extrapolation_pub and multifractal_class_pub, instead of just being passed as the essential arguments to the multifractal_class_pub. The reason for this is that multifractal_class_pub stands as a separate computational tool in the situations when one is interested only in the scaling analysis and not in the field extrapolation.
 
 import numpy as np
 import multifractal_basic_functions_pub as mbf
@@ -44,13 +44,18 @@ def field_extrapolation(field, n_iterations, **kwargs):
     else:
         mask = pa.masking_value()  
 
+    if 'scales_inc' in kwargs:
+        scales_inc = kwargs['scales_inc']
+    else:
+        scales_inc = pa.scales(max_scale, min_scale, scale_coeff)
+
     if 'ratio_bound' in kwargs:
         ratio_bound = kwargs['ratio_bound']
     else:
         ratio_bound = pa.ratio_bound()
 
 
-    field_multifractal = multifractals(field, latitudes = latitudes, momenta_flux = momenta_flux, momenta_inc = momenta_inc, max_scale = max_scale, min_scale = min_scale, scale_coeff = scale_coeff, mask = mask)    # Calculate the multifractal scaling of the field
+    field_multifractal = multifractals(field, latitudes = latitudes, momenta_flux = momenta_flux, momenta_inc = momenta_inc, max_scale = max_scale, min_scale = min_scale, scale_coeff = scale_coeff, mask = mask, scales_inc = scales_inc)    # Calculate the multifractal scaling of the field
     parameters = field_multifractal.UM_parameters()  # Extract the UM parameters
     fluxes = field_multifractal.fluxes()  # Extract the fluxes
     factor = parameters[4]*(1/2.0**n_iterations)**parameters[0]   # the factor that relates fluctuations to fluxes

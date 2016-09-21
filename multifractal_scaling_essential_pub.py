@@ -159,19 +159,17 @@ def scaling(field, momenta, scale_max, scale_min, scale_coeff, anisotropy, outpu
 
 
 
-# This function computes the field increments scaling. It has the same structure as the previous function (for the details see the function scaling(...)), except the output is always 'moments'. The increments are computed around the circle with the radius = scale across all the relevant points of the region. It is as always assumed that field = 0 means `masked', or in other words land. The scale is here returned with values in grid pixels, rather than in values of the maximal scale. This is a difference to the previous scaling(...) function.
+# This function computes the field increments scaling. It has similar structure as the previous function (for the details see the function scaling(...)), except the output is always 'moments'. The increments are computed around the circle with the radius = scale across all the relevant points of the region. It is as always assumed that field = 0 means `masked', or in other words land. The scale is here returned with values in grid pixels, rather than in values of the maximal scale. This is a difference to the previous scaling(...) function.
 
 #As before, there are two more arguments: latitudes and mask.
 
-def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff, latitudes, mask): 
+def scaling_increments(field, momenta, scales_inc_an, latitudes, mask): 
 
     (region_height, region_width) = np.shape(field)
-    scale = np.array([])
     delta_field = []
-    step=1.0
-    length = scale_min
+    scale = []
 
-    while length < scale_max:
+    for length in scales_inc_an:
   
         cases=0.0
         delta=np.zeros((len(momenta)))
@@ -199,10 +197,8 @@ def scaling_increments(field, momenta, scale_max, scale_min, scale_coeff, latitu
           
         if cases > 10: 
             delta_field.append(delta/(cases+0.0))
-            scale=np.append(scale, length)
-
-        length = scale_min*scale_coeff**step
-        step+=1    
+            scale = np.append(scale, length)
+    
         
                 
     return np.asarray(delta_field), scale[0:len(delta_field)]
